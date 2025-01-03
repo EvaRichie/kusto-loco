@@ -1,0 +1,133 @@
+﻿<Window x:Class="lokqlDx.Wpf.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:lokqlDx.Wpf.Views"
+        xmlns:behaviors="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:webview2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:viewmodels="clr-namespace:lokqlDx.Wpf.ViewModels"
+        d:DataContext="{d:DesignInstance Type={x:Type viewmodels:MainWindowViewModel}}"
+        mc:Ignorable="d"
+        Title="{Binding WindowTitle}"
+        Width="1280"
+        Height="800"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing">
+
+  <DockPanel>
+    <Menu DockPanel.Dock="Top" Name="MainMenu">
+      <MenuItem Header="_File">
+        <MenuItem Header="_New Workspace" />
+        <MenuItem Header="_Open Workspace" />
+        <MenuItem Header="_Recent Workspaces" Name="RecentlyUsed" />
+
+        <MenuItem Header="_Save" />
+        <MenuItem Header="Save _As" />
+      </MenuItem>
+      <MenuItem Header="_Preferences">
+        <MenuItem Header="Application Options"
+                  Command="{Binding OpenDialogCommand}"
+                  CommandParameter="AppPreference"/>
+        <MenuItem Header="Workspace Options"
+                  Command="{Binding OpenDialogCommand}"
+                  CommandParameter="WorkspaceOption"/>
+        <Separator />
+        <MenuItem IsEnabled="False">
+          <MenuItem.Header>
+            <TextBlock>
+              <Run Text="Font Size: " />
+              <Run Text="{Binding DisplayFontSize, Mode=OneWay}" />
+            </TextBlock>
+          </MenuItem.Header>
+        </MenuItem>
+        <MenuItem Header="Decrease FontSize"
+                  InputGestureText="Ctrl+9"
+                  Command="{Binding ChangeFontSizeCommand}"
+                  CommandParameter="Decrease"/>
+        <MenuItem Header="Increase FontSize"
+                  InputGestureText="Ctrl+0"
+                  Command="{Binding ChangeFontSizeCommand}"
+                  CommandParameter="Increase"/>
+        <Separator />
+        <MenuItem Header="Toggle word-wrap"
+                  InputGestureText="Alt+Z"
+                  IsCheckable="True"
+                  IsChecked="{Binding IsUseWordWrap}" />
+        <MenuItem Header="Toggle line-numbers"
+                  InputGestureText="Alt+N"
+                  IsCheckable="True"
+                  IsChecked="{Binding IsShowLineNumber}" />
+      </MenuItem>
+      <MenuItem Header="Misc">
+        <MenuItem Header="Register file association" />
+      </MenuItem>
+      <MenuItem Header="Help">
+        <MenuItem Header="Getting started"
+                  Command="{Binding NavigateUriCommand}"
+                  CommandParameter="https://github.com/NeilMacMullen/kusto-loco/wiki/LokqlDX"/>
+        <MenuItem Header="Project Page"
+                  Command="{Binding NavigateUriCommand}"
+                  CommandParameter="https://github.com/NeilMacMullen/kusto-loco"/>
+        <Separator />
+        <MenuItem Header="KQL Introduction"
+                  Command="{Binding NavigateUriCommand}"
+                  CommandParameter="https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/tutorials/learn-common-operators" />
+        <Separator/>
+        <MenuItem Header="Github Discussion Forum"
+                  Command="{Binding NavigateUriCommand}"
+                  CommandParameter="https://github.com/NeilMacMullen/kusto-loco/discussions/categories/q-a"/>
+      </MenuItem>
+    </Menu>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="400" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <local:KqlQueryEditorControl EditorFontSize="{Binding DisplayFontSize, Mode=OneWay}"
+                                   EditorUseWordWrap="{Binding IsUseWordWrap, Mode=OneWay}"
+                                   EditorShowLineNumbers="{Binding IsShowLineNumber, Mode=OneWay}"/>
+
+      <GridSplitter Grid.Column="1"
+              VerticalAlignment="Stretch"
+              Width="5"
+              HorizontalAlignment="Stretch"
+              Background="DarkGray" />
+
+      <TabControl Name="RenderingSurface" Grid.Column="2" Background="Black">
+        <TabItem Header="Data">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top">
+              <Label Visibility="Collapsed" Name="DatagridOverflowWarning" Foreground="Red" />
+            </StackPanel>
+            <DataGrid Name="dataGrid" Background="Black" RowBackground="Black"
+                Foreground="GreenYellow"
+                AlternatingRowBackground="DarkBlue"
+                IsReadOnly="True"
+                ClipboardCopyMode="ExcludeHeader"
+                SelectionUnit="Cell">
+              <DataGrid.Resources>
+                <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"
+                 TargetType="{x:Type DataGridColumnHeader}">
+                  <Setter Property="Background" Value="DarkBlue" />
+                  <Setter Property="Padding" Value="2,0,5,0" />
+                </Style>
+              </DataGrid.Resources>
+            </DataGrid>
+          </DockPanel>
+        </TabItem>
+        <TabItem Header="Chart" IsSelected="True">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right" Margin="4">
+              <Button Content="&#x1F4CB;" ToolTip="Copy image to clipboard" />
+              <Button Content="&#x1F310;" ToolTip="Open in browser" />
+            </StackPanel>
+            <webview2:WebView2 x:Name="WebViewInstance" DockPanel.Dock="Bottom" DefaultBackgroundColor="Black" />
+          </DockPanel>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </DockPanel>
+</Window>
