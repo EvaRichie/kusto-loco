@@ -5,6 +5,8 @@ using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using Lokql.Engine;
+using Lokql.Engine.Commands;
+using Microsoft.Extensions.DependencyInjection;
 using NotNullStrings;
 using System.IO;
 using System.Reflection;
@@ -31,12 +33,13 @@ public partial class KqlQueryEditorControl : UserControl
     private IEnumerable<IntellisenseEntry> _internalCommands = [];
     private IEnumerable<IntellisenseEntry> _settingNames = [];
     private IEnumerable<IntellisenseEntry> _kqlFunctionEntries = [];
-    private IEnumerable<IntellisenseEntry> KqlOperatorEntries = [];
+    private IEnumerable<IntellisenseEntry> _kqlOperatorEntries = [];
 
     public KqlQueryEditorControl()
     {
         InitializeComponent();
 
+        _internalCommands = App.ServiceProvider.GetRequiredService<CommandProcessor>().GetVerbs().Select(v => new IntellisenseEntry(v.Key, v.Value, string.Empty));
         _editorHelper = new EditorHelper(Query);
         Query.TextArea.TextEntering += TextArea_TextEntering;
         Query.TextArea.TextEntered += TextArea_TextEntered;
@@ -50,7 +53,7 @@ public partial class KqlQueryEditorControl : UserControl
         using var functions = SafeGetResourceStream("IntellisenseFunctions.json");
         _kqlFunctionEntries = JsonSerializer.Deserialize<IntellisenseEntry[]>(functions!)!;
         using var ops = SafeGetResourceStream("IntellisenseOperators.json");
-        KqlOperatorEntries = JsonSerializer.Deserialize<IntellisenseEntry[]>(ops!)!;
+        _kqlOperatorEntries = JsonSerializer.Deserialize<IntellisenseEntry[]>(ops!)!;
     }
 
     /// <summary>
@@ -88,7 +91,7 @@ public partial class KqlQueryEditorControl : UserControl
 
         if (e.Text == "|")
         {
-            ShowCompletions(KqlOperatorEntries, " ", 0);
+            ShowCompletions(_kqlOperatorEntries, " ", 0);
             return;
         }
 
@@ -114,7 +117,8 @@ public partial class KqlQueryEditorControl : UserControl
             return;
         }
 
-        if (e.Text == "?") ShowCompletions(_kqlFunctionEntries, string.Empty, 1);
+        if (e.Text == "?")
+            ShowCompletions(_kqlFunctionEntries, string.Empty, 1);
     }
 
     private void TextArea_TextEntering(object sender, TextCompositionEventArgs e)
@@ -138,7 +142,10 @@ public partial class KqlQueryEditorControl : UserControl
             e.Handled = true;
             var query = GetTextAroundCursor();
             if (query.Length > 0)
+            {
+                RunKqlCommand?.Execute(query);
                 RunEvent?.Invoke(this, new QueryEditorRunEventArgs(query));
+            }
         }
     }
 
@@ -234,8 +241,19 @@ public partial class KqlQueryEditorControl : UserControl
     }
 }
 
+// For Dependency Property!
 public partial class KqlQueryEditorControl
 {
+    public string QueryText
+    {
+        get { return (string)GetValue(QueryTextProperty); }
+        set { SetValue(QueryTextProperty, value); }
+    }
+
+    // Using a DependencyProperty as the backing store for QueryText.  This enables animation, styling, binding, etc...
+    public static readonly DependencyProperty QueryTextProperty =
+        DependencyProperty.Register(nameof(QueryText), typeof(string), typeof(KqlQueryEditorControl), new PropertyMetadata());
+
     public bool IsLoading
     {
         get { return (bool)GetValue(IsLoadingProperty); }
@@ -274,7 +292,7 @@ public partial class KqlQueryEditorControl
 
     // Using a DependencyProperty as the backing store for EditorFontSize.  This enables animation, styling, binding, etc...
     public static readonly DependencyProperty EditorFontSizeProperty =
-        DependencyProperty.Register(nameof(EditorFontSize), typeof(double), typeof(KqlQueryEditorControl), new PropertyMetadata());
+        DependencyProperty.Register(nameof(EditorFontSize), typeof(double), typeof(KqlQueryEditorControl), new PropertyMetadata(20d));
 
     public FontFamily EditorFontFamily
     {
@@ -285,6 +303,17 @@ public partial class KqlQueryEditorControl
     // Using a DependencyProperty as the backing store for EditorFontFamily.  This enables animation, styling, binding, etc...
     public static readonly DependencyProperty EditorFontFamilyProperty =
         DependencyProperty.Register(nameof(EditorFontFamily), typeof(FontFamily), typeof(KqlQueryEditorControl), new PropertyMetadata());
+
+    public ICommand RunKqlCommand
+    {
+        get { return (ICommand)GetValue(RunKqlCommandProperty); }
+        set { SetValue(RunKqlCommandProperty, value); }
+    }
+
+    // Using a DependencyProperty as the backing store for RunKqlCommand.  This enables animation, styling, binding, etc...
+    public static readonly DependencyProperty RunKqlCommandProperty =
+        DependencyProperty.Register(nameof(RunKqlCommand), typeof(ICommand), typeof(KqlQueryEditorControl), new PropertyMetadata());
+
 
     public event EventHandler<QueryEditorRunEventArgs>? RunEvent;
 }

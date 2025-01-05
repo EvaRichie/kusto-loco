@@ -10,10 +10,12 @@
         d:DataContext="{d:DesignInstance Type={x:Type viewmodels:MainWindowViewModel}}"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
-        Width="1280"
-        Height="800"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
+
+  <Window.Resources>
+    <local:FontFamilyNameConverter x:Key="FontFamilyNameCvt" />
+  </Window.Resources>
 
   <DockPanel>
     <Menu DockPanel.Dock="Top" Name="MainMenu">
@@ -27,11 +29,11 @@
       </MenuItem>
       <MenuItem Header="_Preferences">
         <MenuItem Header="Application Options"
-                  Command="{Binding OpenDialogCommand}"
-                  CommandParameter="AppPreference"/>
+                  Command="{Binding OpenAppPreferenceDialogCommand}"
+                  CommandParameter="{x:Type local:AppPreferenceWindow}"/>
         <MenuItem Header="Workspace Options"
-                  Command="{Binding OpenDialogCommand}"
-                  CommandParameter="WorkspaceOption"/>
+                  Command="{Binding OpenWorkspaceScriptDialogCommand}"
+                  CommandParameter="{x:Type local:WorkspaceOptionWindow}"/>
         <Separator />
         <MenuItem IsEnabled="False">
           <MenuItem.Header>
@@ -85,10 +87,39 @@
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
-
-      <local:KqlQueryEditorControl EditorFontSize="{Binding DisplayFontSize, Mode=OneWay}"
-                                   EditorUseWordWrap="{Binding IsUseWordWrap, Mode=OneWay}"
-                                   EditorShowLineNumbers="{Binding IsShowLineNumber, Mode=OneWay}"/>
+      <!-- Kql interact area -->
+      <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TabControl Grid.Row="0">
+          <TabItem Header="Editor mode">
+            <local:KqlQueryEditorControl IsLoading="{Binding IsEditorLoading, Mode=OneWay}"
+                                         EditorFontSize="{Binding DisplayFontSize, Mode=OneWay}"
+                                         EditorUseWordWrap="{Binding IsUseWordWrap, Mode=OneWay}"
+                                         EditorFontFamily="{Binding DisplayFontFamilyName, Mode=OneWay, Converter={StaticResource FontFamilyNameCvt}}"
+                                         EditorShowLineNumbers="{Binding IsShowLineNumber, Mode=OneWay}"
+                                         RunKqlCommand="{Binding InvokeRunKqlQueryCommand, Mode=OneWay}" />
+          </TabItem>
+          <TabItem Header="Copilot">
+            
+          </TabItem>
+        </TabControl>
+        <GridSplitter Grid.Row="1"
+              VerticalAlignment="Stretch"
+              Height="5"
+              HorizontalAlignment="Stretch"
+              Background="DarkGray" />
+        
+        <RichTextBox Grid.Row="2"
+                     Name="OutputText"
+                     Background="Black"
+                     FontFamily="{Binding DisplayFontFamilyName, Converter={StaticResource FontFamilyNameCvt}}"
+                     FontSize="{Binding DisplayFontSize, Mode=OneWay}"
+                     VerticalScrollBarVisibility="Auto" />
+      </Grid>
 
       <GridSplitter Grid.Column="1"
               VerticalAlignment="Stretch"

@@ -12,16 +12,17 @@
              Loaded="UserControl_Loaded">
 
   <UserControl.Resources>
+    <local:FontFamilyNameConverter x:Key="FontFamilyCvt" />
     <BooleanToVisibilityConverter x:Key="BoolCvt" />
   </UserControl.Resources>
   
   <DockPanel Background="Black">
     <Grid DockPanel.Dock="Top">
-      <avalonEdit:TextEditor Padding="3"
-                             Name="Query"
+      <avalonEdit:TextEditor Name="Query"
+                             Padding="3"
                              Background="Black"
                              Foreground="White"
-                             FontFamily="{Binding ElementName=Instance, Path=EditorFontFamily, Mode=OneWay}"
+                             FontFamily="{Binding ElementName=Instance, Path=EditorFontFamily, Mode=OneWay, Converter={StaticResource FontFamilyCvt}}"
                              ShowLineNumbers="{Binding ElementName=Instance, Path=EditorShowLineNumbers, Mode=OneWay}"
                              WordWrap="{Binding ElementName=Instance, Path=EditorUseWordWrap, Mode=OneWay}"
                              FontSize="{Binding ElementName=Instance, Path=EditorFontSize, Mode=OneWay}"
@@ -29,7 +30,7 @@
                              PreviewKeyDown="Editor_PreviewKeyDown"
                              PreviewDragOver="Editor_PreviewDragOver"
                              PreviewDragEnter="Editor_PreviewDragEnter"
-                             Drop="Editor_Drop"/>
+                             Drop="Editor_Drop" />
       <ProgressBar IsIndeterminate="true"
                    Height="8"
                    Margin="30"

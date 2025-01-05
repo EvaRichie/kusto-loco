@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using lokqlDx.Wpf.Models;
 using lokqlDx.Wpf.Models.Messages;
 using lokqlDx.Wpf.Services;
 using System;
@@ -10,6 +11,28 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace lokqlDx.Wpf.ViewModels;
+
+internal partial class AppPreferenceViewModel : ObservableRecipient
+{
+    private readonly IAppPreferenceService _appPreferenceService;
+
+    public AppPreferenceViewModel(IAppPreferenceService appPreferenceService)
+    {
+        _appPreferenceService = appPreferenceService;
+    }
+
+    protected override void OnActivated()
+    {
+        Messenger.Register<AppPreferenceViewModel, CurrentAppPreferenceMessage>(this, async (vm, msg)=> msg.Reply(await FillPreferenceAsync()));
+    }
+
+    private async Task<Preferences> FillPreferenceAsync()
+    {
+        _appPreferenceService.EnsureDefaultFolderExists();
+        await _appPreferenceService.LoadPreferenceAsync();
+        return _appPreferenceService.CurrentPreference;
+    }
+}
 
 public partial class MainWindowViewModel : ObservableObject
 {
@@ -24,6 +47,18 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private double _displayFontSize = 12;
+
+    [ObservableProperty]
+    private string _displayFontFamilyName = "Consolas";
+
+    [ObservableProperty]
+    private Workspace _workspacePreference = new();
+
+    [ObservableProperty]
+    private string _kqlQueryText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isEditorLoading = false;
 
     private readonly IAppPreferenceService _preferenceService;
     private readonly IDialogService _dialogService;
@@ -54,6 +89,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task InitializeAsync()
     {
         await _preferenceService.LoadPreferenceAsync();
+
         IsUseWordWrap = _preferenceService.CurrentPreference.WordWrap;
         IsShowLineNumber = _preferenceService.CurrentPreference.ShowLineNumbers;
         DisplayFontSize = _preferenceService.CurrentPreference.FontSize;
@@ -72,9 +108,33 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenDialog(string dialogPrefix)
+    private void OpenWorkspaceScriptDialog(Type dialogType)
     {
-        _dialogService.ShowDialog(dialogPrefix);
+        _dialogService.ShowDialog(dialogType.Name);
+        if (_dialogService.LastDialogResult is string workspaceScript)
+        {
+            WorkspacePreference = new Workspace { StartupScript = workspaceScript, Text = KqlQueryText };
+        }
+    }
+
+    [RelayCommand]
+    private void OpenAppPreferenceDialog(Type dialogType)
+    {
+        _dialogService.ShowDialog(dialogType.Name);
+        if (_dialogService.LastDialogResult is not null)
+        {
+
+        }
+    }
+
+    [RelayCommand]
+    private async Task InvokeRunKqlQueryAsync()
+    {
+        IsEditorLoading = true;
+
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        IsEditorLoading = false;
     }
 
     [RelayCommand]

@@ -1,20 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 using System.Windows;
 
 namespace lokqlDx.Wpf.Services;
 
 public interface IDialogService
 {
+    object? DialogInstance { get; }
+
+    object? LastDialogResult { get; }
+
     bool ShowDialog(string dialogType);
+
+    void SetDialogResult(bool dialogResult);
+
+    void SetDialogResult(object dialogResult);
+
+    void CloseCurrentDialog();
 }
 
 public class Win32DialogService : IDialogService
 {
+    public object? DialogInstance { get; private set; }
+
+    public object? LastDialogResult { get; private set; }
+
     public bool ShowDialog(string dialogType)
     {
         var viewTypes = Assembly.GetExecutingAssembly().ExportedTypes.Where(static i => i.IsSubclassOf(typeof(Window)));
@@ -25,10 +34,33 @@ public class Win32DialogService : IDialogService
         var instance = Activator.CreateInstance(targetWindowType);
         if (instance is Window instanceWindow)
         {
+            DialogInstance = instanceWindow;
             instanceWindow.Owner = App.Current.MainWindow;
             return instanceWindow.ShowDialog().GetValueOrDefault();
         }
 
         return false;
+    }
+
+    public void CloseCurrentDialog()
+    {
+        if (DialogInstance is not Window windowInstance)
+            return;
+
+        windowInstance.Close();
+        LastDialogResult = null;
+    }
+
+    public void SetDialogResult(bool result)
+    {
+        if (DialogInstance is not Window windowInstance)
+            return;
+
+        windowInstance.DialogResult = result;
+    }
+
+    public void SetDialogResult(object dialogResult)
+    {
+        LastDialogResult = dialogResult;
     }
 }

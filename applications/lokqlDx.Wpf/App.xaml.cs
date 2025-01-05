@@ -6,6 +6,10 @@ using NotNullStrings;
 using Microsoft.Extensions.DependencyInjection;
 using lokqlDx.Wpf.ViewModels;
 using lokqlDx.Wpf.Services;
+using lokqlDx.Wpf.Views;
+using KustoLoco.Core.Console;
+using Lokql.Engine.Commands;
+using System.Windows.Navigation;
 
 namespace lokqlDx.Wpf;
 
@@ -18,22 +22,41 @@ public partial class App : Application
 
     public static string[] StartUpArgs { get; private set; } = [];
 
-    protected override void OnStartup(StartupEventArgs e)
+    public App()
     {
         var services = new ServiceCollection();
 
+        services.AddSingleton<WorkspaceManager>();
         services.AddSingleton<IDialogService, Win32DialogService>();
         services.AddSingleton<IAppPreferenceService, Win32AppPreferenceService>();
 
+        //services.AddSingleton<IKustoConsole, WpfOutputConsole>();
+        services.AddSingleton<IWpfTextKustoConsole, WpfOutputConsole>();
+
+        services.AddSingleton<CommandProcessor>(_ => CommandProcessor.Default());
+
         services.AddSingleton<MainWindowViewModel>();
 
-        ServiceProvider = services.BuildServiceProvider();
+        // For dialog service flow.
+        services.AddTransient<WorkspaceOptionWindowViewModel>();
 
+        ServiceProvider = services.BuildServiceProvider();
+    }
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
         StartUpArgs = e.Args;
 
         base.OnStartup(e);
         EnsureWebViewAvailable();
     }
+
+    //protected override async void OnNavigating(NavigatingCancelEventArgs e)
+    //{
+    //    var appPreference = ServiceProvider.GetRequiredService<IAppPreferenceService>();
+    //    appPreference.EnsureDefaultFolderExists();
+    //    await appPreference.LoadPreferenceAsync();
+    //}
 
     private void EnsureWebViewAvailable()
     {

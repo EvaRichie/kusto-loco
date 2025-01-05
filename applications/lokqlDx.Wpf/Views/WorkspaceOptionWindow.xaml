@@ -3,10 +3,28 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:lokqlDx.Wpf.ViewModels"
         xmlns:local="clr-namespace:lokqlDx.Wpf.Views"
         mc:Ignorable="d"
-        Title="WorkspaceOptionWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        d:DataContext="{d:DesignInstance Type={x:Type vm:WorkspaceOptionWindowViewModel}}"
+        Title="{Binding WindowTitle}"
+        Height="450"
+        Width="800">
+
+  <DockPanel>
+    <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" HorizontalAlignment="Right">
+      <Button Margin="3" Command="{Binding CloseDialogCommand}">Cancel</Button>
+      <Button Margin="3" Command="{Binding FinishDialogCommand}">Ok</Button>
+    </StackPanel>
+    <DockPanel>
+      <Label Content="Workspace Pre-script (run when this workspace is loaded)" DockPanel.Dock="Top"/>
+      <Border Margin="5">
+        <TextBox AcceptsReturn="True"
+                 Background="Black"
+                 Foreground="White"
+                 VerticalScrollBarVisibility="Auto"
+                 Text="{Binding WorkspaceScript, Mode=OneWay}"/>
+      </Border>
+    </DockPanel>
+  </DockPanel>
 </Window>

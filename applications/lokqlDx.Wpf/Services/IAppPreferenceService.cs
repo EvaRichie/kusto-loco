@@ -2,6 +2,7 @@
 using NotNullStrings;
 using System.IO;
 using System.Text.Json;
+using System.Windows;
 
 namespace lokqlDx.Wpf.Services;
 
@@ -14,6 +15,8 @@ public interface IAppPreferenceService
     Task SavePreferenceAsync();
 
     Task LoadPreferenceAsync();
+
+    Task SaveWindowInfoAsync(object windowInstance);
 }
 
 public class Win32AppPreferenceService : IAppPreferenceService
@@ -84,5 +87,17 @@ public class Win32AppPreferenceService : IAppPreferenceService
             CurrentPreference.FontSize = 12;
         if (CurrentPreference.FontFamily.IsBlank())
             CurrentPreference.FontFamily = "Consolas";
+    }
+
+    public async Task SaveWindowInfoAsync(object windowInstance)
+    {
+        if (windowInstance is Window window)
+        {
+            CurrentPreference.WindowLeft = window.Left;
+            CurrentPreference.WindowTop = window.Top;
+            CurrentPreference.WindowWidth = window.Width;
+            CurrentPreference.WindowHeight = window.Height;
+            await SavePreferenceAsync();
+        }
     }
 }
