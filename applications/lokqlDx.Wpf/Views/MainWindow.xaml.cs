@@ -1,14 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using KustoLoco.Core;
 using KustoLoco.Core.Console;
+using KustoLoco.Core.Settings;
 using Lokql.Engine;
 using Lokql.Engine.Commands;
+using lokqlDx.Wpf.Helpers;
 using lokqlDx.Wpf.Models.Messages;
 using lokqlDx.Wpf.Services;
 using lokqlDx.Wpf.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace lokqlDx.Wpf.Views;
@@ -18,6 +21,8 @@ public partial class MainWindow : Window
     private MainWindowViewModel _viewModel;
 
     private readonly IWpfTextKustoConsole _kustoOpsOutput;
+
+    private readonly KustoSettingsProvider _settingProvider;
     private InteractiveTableExplorer _interactiveExplorer;
 
     public MainWindow()
@@ -30,10 +35,11 @@ public partial class MainWindow : Window
         _kustoOpsOutput = App.ServiceProvider.GetRequiredService<IWpfTextKustoConsole>();
         _kustoOpsOutput.AttachControl(OutputText);
 
-        var workspaceSetting = App.ServiceProvider.GetRequiredService<WorkspaceManager>().Settings;
-        var adapter = new StandardFormatAdaptor(workspaceSetting, (IKustoConsole)_kustoOpsOutput);
+        _settingProvider = App.ServiceProvider.GetRequiredService<WorkspaceManager>().Settings;
+        var adapter = new StandardFormatAdaptor(_settingProvider, _kustoOpsOutput.AsIKustoConsole());
         var processor = App.ServiceProvider.GetRequiredService<CommandProcessor>();
-        _interactiveExplorer = new InteractiveTableExplorer((IKustoConsole)_kustoOpsOutput, adapter, workspaceSetting, processor, this);
+        var renderService = App.ServiceProvider.GetRequiredService<IKustoResultProcessService>();
+        _interactiveExplorer = new InteractiveTableExplorer(_kustoOpsOutput.AsIKustoConsole(), adapter, _settingProvider, processor, renderService.AsRenderingSurface());
 
         WeakReferenceMessenger.Default.UnregisterAll(this);
         WeakReferenceMessenger.Default.RegisterAll(this);
@@ -49,7 +55,7 @@ public partial class MainWindow : Window
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         await _viewModel.InitializeCommand.ExecuteAsync(default);
-
+        //var preference = WeakReferenceMessenger.Default.Send(new CurrentAppPreferenceMessage());
         WeakReferenceMessenger.Default.Send(new NavigateWebMessage(new Uri("https://github.com/NeilMacMullen/kusto-loco/wiki/LokqlDX")));
     }
 
@@ -60,32 +66,45 @@ public partial class MainWindow : Window
     }
 }
 
-// For Recipent
-public partial class MainWindow : IRecipient<NavigateWebMessage>
+// For Recipient
+public partial class MainWindow :
+    IRecipient<NavigateWebMessage>,
+    IRecipient<NavigateWebContentMessage>,
+    IRecipient<RequestRunKqlMessage>,
+    IRecipient<SwitchViewModelMessage>
 {
     async void IRecipient<NavigateWebMessage>.Receive(NavigateWebMessage message)
     {
-        await WebViewInstance.EnsureCoreWebView2Async();
-        WebViewInstance.CoreWebView2.Navigate(message.Value.ToString());
-    }
-}
-
-
-public partial class MainWindow : IResultRenderingSurface
-{
-    public Task NavigateToUrl(Uri url)
-    {
-        WeakReferenceMessenger.Default.Send(new NavigateWebMessage(url));
-        return Task.CompletedTask;
+        await Dispatcher.InvokeAsync(async () =>
+        {
+            await WebViewInstance.EnsureCoreWebView2Async();
+            WebViewInstance.CoreWebView2.Navigate(message.Value.ToString());
+        });
     }
 
-    public Task RenderToDisplay(KustoQueryResult result)
+    async void IRecipient<NavigateWebContentMessage>.Receive(NavigateWebContentMessage message)
     {
-        return Task.CompletedTask;
+        await Dispatcher.InvokeAsync(async () =>
+        {
+            await WebViewInstance.EnsureCoreWebView2Async();
+            await WebViewInstance.CoreWebView2.NavigateToStringAsync(message.Value);
+        });
     }
 
-    public Task<byte[]> RenderToImage(KustoQueryResult result, double pWidth, double pHeight)
+    async void IRecipient<RequestRunKqlMessage>.Receive(RequestRunKqlMessage message)
     {
-        return Task.FromResult(Array.Empty<byte>());
+        _kustoOpsOutput.PrepareForOutput();
+        await Task.Run(async () => await _interactiveExplorer.RunInput(message.Value));
+    }
+
+    void IRecipient<SwitchViewModelMessage>.Receive(SwitchViewModelMessage message)
+    {
+        if (message.Value == RenderType.None)
+            return;
+
+        Dispatcher.Invoke(() =>
+        {
+            RenderingSurface.SelectedItem = message.Value == RenderType.Chart ? WebViewTabItem : DataListTabItem;
+        });
     }
 }

@@ -23,6 +23,11 @@ public interface IWpfTextKustoConsole : IKustoConsole
     ///     Prepare for new text output and calculate the width of the console window
     /// </summary>
     void PrepareForOutput();
+
+    IKustoConsole AsIKustoConsole()
+    {
+        return (IKustoConsole)this;
+    }
 }
 
 public class WpfOutputConsole : IWpfTextKustoConsole

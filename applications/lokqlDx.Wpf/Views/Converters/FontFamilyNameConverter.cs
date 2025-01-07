@@ -2,7 +2,7 @@
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace lokqlDx.Wpf.Views;
+namespace lokqlDx.Wpf.Views.Converters;
 
 public sealed class FontFamilyNameConverter : IValueConverter
 {

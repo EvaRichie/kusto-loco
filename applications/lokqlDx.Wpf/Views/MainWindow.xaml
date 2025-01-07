@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:lokqlDx.Wpf.Views"
+        xmlns:cvts="clr-namespace:lokqlDx.Wpf.Views.Converters"
         xmlns:behaviors="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:webview2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:viewmodels="clr-namespace:lokqlDx.Wpf.ViewModels"
@@ -14,7 +15,8 @@
         Closing="Window_Closing">
 
   <Window.Resources>
-    <local:FontFamilyNameConverter x:Key="FontFamilyNameCvt" />
+    <BooleanToVisibilityConverter x:Key="BoolToVisibilityCvt" />
+    <cvts:FontFamilyNameConverter x:Key="FontFamilyNameCvt" />
   </Window.Resources>
 
   <DockPanel>
@@ -108,40 +110,45 @@
           </TabItem>
         </TabControl>
         <GridSplitter Grid.Row="1"
-              VerticalAlignment="Stretch"
-              Height="5"
-              HorizontalAlignment="Stretch"
-              Background="DarkGray" />
+                      VerticalAlignment="Stretch"
+                      Height="5"
+                      HorizontalAlignment="Stretch"
+                      Background="DarkGray" />
         
         <RichTextBox Grid.Row="2"
                      Name="OutputText"
                      Background="Black"
+                     IsReadOnly="True"
                      FontFamily="{Binding DisplayFontFamilyName, Converter={StaticResource FontFamilyNameCvt}}"
                      FontSize="{Binding DisplayFontSize, Mode=OneWay}"
                      VerticalScrollBarVisibility="Auto" />
       </Grid>
 
       <GridSplitter Grid.Column="1"
-              VerticalAlignment="Stretch"
-              Width="5"
-              HorizontalAlignment="Stretch"
-              Background="DarkGray" />
+                    VerticalAlignment="Stretch"
+                    Width="5"
+                    HorizontalAlignment="Stretch"
+                    Background="DarkGray" />
 
-      <TabControl Name="RenderingSurface" Grid.Column="2" Background="Black">
-        <TabItem Header="Data">
+      <TabControl x:Name="RenderingSurface" Grid.Column="2" Background="Black">
+        <TabItem x:Name="DataListTabItem" Header="Data">
           <DockPanel>
             <StackPanel DockPanel.Dock="Top">
-              <Label Visibility="Collapsed" Name="DatagridOverflowWarning" Foreground="Red" />
+              <TextBlock Visibility="{Binding IsOverflowDataList, Mode=OneWay, Converter={StaticResource BoolToVisibilityCvt}}"
+                         Foreground="Red"
+                         Text="{Binding OverFlowMessage, Mode=OneWay}"/>
             </StackPanel>
-            <DataGrid Name="dataGrid" Background="Black" RowBackground="Black"
-                Foreground="GreenYellow"
-                AlternatingRowBackground="DarkBlue"
-                IsReadOnly="True"
-                ClipboardCopyMode="ExcludeHeader"
-                SelectionUnit="Cell">
+            <DataGrid Name="dataGrid"
+                      Background="Black"
+                      RowBackground="Black"
+                      Foreground="GreenYellow"
+                      AlternatingRowBackground="DarkBlue"
+                      IsReadOnly="True"
+                      ClipboardCopyMode="ExcludeHeader"
+                      SelectionUnit="Cell"
+                      ItemsSource="{Binding TableView, Mode=OneWay}">
               <DataGrid.Resources>
-                <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"
-                 TargetType="{x:Type DataGridColumnHeader}">
+                <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" TargetType="{x:Type DataGridColumnHeader}">
                   <Setter Property="Background" Value="DarkBlue" />
                   <Setter Property="Padding" Value="2,0,5,0" />
                 </Style>
@@ -149,11 +156,11 @@
             </DataGrid>
           </DockPanel>
         </TabItem>
-        <TabItem Header="Chart" IsSelected="True">
+        <TabItem x:Name="WebViewTabItem" Header="Chart" IsSelected="True">
           <DockPanel>
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right" Margin="4">
-              <Button Content="&#x1F4CB;" ToolTip="Copy image to clipboard" />
-              <Button Content="&#x1F310;" ToolTip="Open in browser" />
+              <Button Content="&#x1F4CB;" ToolTip="Copy image to clipboard" Command="{Binding CopyImageToClipboardCommand}" />
+              <Button Content="&#x1F310;" ToolTip="Open in browser" Command="{Binding OpenWithDefaultBrowserCommand}" />
             </StackPanel>
             <webview2:WebView2 x:Name="WebViewInstance" DockPanel.Dock="Bottom" DefaultBackgroundColor="Black" />
           </DockPanel>

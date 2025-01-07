@@ -4,37 +4,19 @@ using CommunityToolkit.Mvvm.Messaging;
 using lokqlDx.Wpf.Models;
 using lokqlDx.Wpf.Models.Messages;
 using lokqlDx.Wpf.Services;
+using Microsoft.Extensions.DependencyInjection;
+using NotNullStrings;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace lokqlDx.Wpf.ViewModels;
 
-internal partial class AppPreferenceViewModel : ObservableRecipient
-{
-    private readonly IAppPreferenceService _appPreferenceService;
-
-    public AppPreferenceViewModel(IAppPreferenceService appPreferenceService)
-    {
-        _appPreferenceService = appPreferenceService;
-    }
-
-    protected override void OnActivated()
-    {
-        Messenger.Register<AppPreferenceViewModel, CurrentAppPreferenceMessage>(this, async (vm, msg)=> msg.Reply(await FillPreferenceAsync()));
-    }
-
-    private async Task<Preferences> FillPreferenceAsync()
-    {
-        _appPreferenceService.EnsureDefaultFolderExists();
-        await _appPreferenceService.LoadPreferenceAsync();
-        return _appPreferenceService.CurrentPreference;
-    }
-}
-
-public partial class MainWindowViewModel : ObservableObject
+public partial class MainWindowViewModel : ObservableRecipient, IRecipient<RenderKqlQueryResultAsItemSource>
 {
     [ObservableProperty]
     private string _windowTitle = string.Empty;
@@ -60,14 +42,48 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isEditorLoading = false;
 
+    [ObservableProperty]
+    private DataView? _tableView = null;
+
+    [ObservableProperty]
+    private bool _isOverflowDataList = false;
+
+    [ObservableProperty]
+    private string _overFlowMessage = string.Empty;
+
     private readonly IAppPreferenceService _preferenceService;
     private readonly IDialogService _dialogService;
 
     public MainWindowViewModel(IAppPreferenceService appPreferenceService, IDialogService dialogService)
     {
+        IsActive = true;
+        Messenger.Register<CurrentAppPreferenceMessage>(this, handler);
+
         WindowTitle = "lokqlDx";
         _preferenceService = appPreferenceService;
         _dialogService = dialogService;
+    }
+
+    private async void handler(object recipient, CurrentAppPreferenceMessage message)
+    {
+        _preferenceService.EnsureDefaultFolderExists();
+        await _preferenceService.LoadPreferenceAsync();
+
+        message.Reply(_preferenceService.CurrentPreference);
+    }
+
+    void IRecipient<RenderKqlQueryResultAsItemSource>.Receive(RenderKqlQueryResultAsItemSource message)
+    {
+        if (!message.IsValid)
+            return;
+
+        if (message.DefaultDataView is null)
+            return;
+
+        IsOverflowDataList = message.OverFlowMessage.IsNotBlank();
+        OverFlowMessage = message.OverFlowMessage;
+        TableView = message.DefaultDataView;
+        WeakReferenceMessenger.Default.Send(new SwitchViewModelMessage(RenderType.DataGrid));
     }
 
     partial void OnDisplayFontSizeChanged(double value)
@@ -88,7 +104,10 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task InitializeAsync()
     {
+        _preferenceService.EnsureDefaultFolderExists();
         await _preferenceService.LoadPreferenceAsync();
+
+        //WeakReferenceMessenger.Default.Send(new CurrentAppPreferenceMessage());
 
         IsUseWordWrap = _preferenceService.CurrentPreference.WordWrap;
         IsShowLineNumber = _preferenceService.CurrentPreference.ShowLineNumbers;
@@ -128,11 +147,12 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InvokeRunKqlQueryAsync()
+    private async Task InvokeRunKqlQueryAsync(string query)
     {
         IsEditorLoading = true;
 
         await Task.Delay(TimeSpan.FromSeconds(1));
+        WeakReferenceMessenger.Default.Send(new RequestRunKqlMessage(query));
 
         IsEditorLoading = false;
     }
@@ -144,5 +164,17 @@ public partial class MainWindowViewModel : ObservableObject
             return;
 
         WeakReferenceMessenger.Default.Send(new NavigateWebMessage(uri));
+    }
+
+    [RelayCommand]
+    private void OpenWithDefaultBrowser()
+    {
+
+    }
+
+    [RelayCommand]
+    private void CopyImageToClipboard()
+    {
+
     }
 }

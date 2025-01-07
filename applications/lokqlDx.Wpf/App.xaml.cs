@@ -29,6 +29,7 @@ public partial class App : Application
         services.AddSingleton<WorkspaceManager>();
         services.AddSingleton<IDialogService, Win32DialogService>();
         services.AddSingleton<IAppPreferenceService, Win32AppPreferenceService>();
+        services.AddSingleton<IKustoResultProcessService, Win32KustoResultProcessService>();
 
         //services.AddSingleton<IKustoConsole, WpfOutputConsole>();
         services.AddSingleton<IWpfTextKustoConsole, WpfOutputConsole>();

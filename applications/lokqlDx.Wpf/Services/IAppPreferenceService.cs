@@ -69,12 +69,12 @@ public class Win32AppPreferenceService : IAppPreferenceService
     {
         try
         {
-            using var fileStream = File.Open(PreferencesPath(), FileMode.Open, FileAccess.Read);
+            var fileStream = File.Open(PreferencesPath(), FileMode.Open, FileAccess.Read, FileShare.Read);
             var preference = await JsonSerializer.DeserializeAsync<Preferences>(fileStream, _options);
+            await fileStream.DisposeAsync();
+            fileStream = null;
             if (preference is not null)
-            {
                 CurrentPreference = preference;
-            }
         }
         catch (Exception ex)
         {

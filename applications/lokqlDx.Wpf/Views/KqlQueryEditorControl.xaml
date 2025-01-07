@@ -6,13 +6,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
              xmlns:local="clr-namespace:lokqlDx.Wpf.Views"
+             xmlns:cvts="clr-namespace:lokqlDx.Wpf.Views.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450"
              d:DesignWidth="800"
              Loaded="UserControl_Loaded">
 
   <UserControl.Resources>
-    <local:FontFamilyNameConverter x:Key="FontFamilyCvt" />
+    <cvts:FontFamilyNameConverter x:Key="FontFamilyCvt" />
     <BooleanToVisibilityConverter x:Key="BoolCvt" />
   </UserControl.Resources>
   
