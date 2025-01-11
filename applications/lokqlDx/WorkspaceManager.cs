@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections;
+using System.IO;
 using System.Text.Json;
 using KustoLoco.Core.Settings;
 using Lokql.Engine;
@@ -22,9 +23,9 @@ public class WorkspaceManager
 
     public static string GlobPattern => $"*.{Extension}";
 
-
+    public bool IsNewWorkspace => Path.IsBlank();
     public KustoSettingsProvider Settings { get; } = new();
-
+    private JsonSerializerOptions _options = new() { WriteIndented = true };
     private void EnsureWorkspacePopulated()
     {
         var UserText = _workspace.Text;
@@ -53,8 +54,9 @@ data
         Path = path;
         try
         {
-            var json = JsonSerializer.Serialize(workspace);
+            var json = JsonSerializer.Serialize(workspace,_options);
             File.WriteAllText(Path, json);
+            _workspace = workspace;
         }
         catch (Exception e)
         {
@@ -78,7 +80,7 @@ data
             Directory.CreateDirectory(rootSettingFolderPath);
 
         _workspace = new Workspace();
-        Settings.Reset();
+        ResetSettings();
         Path = path;
         SetWorkingPaths();
         if (path.IsNotBlank())
@@ -95,10 +97,25 @@ data
         EnsureWorkspacePopulated();
     }
 
+
+    private void ResetSettings()
+    {
+        Settings.Reset();
+        //now add in settings from env...
+        var env = Environment.GetEnvironmentVariables();
+        foreach (DictionaryEntry  e in env)
+        {
+            var v = e.Value?.ToString();
+            if (v is null) continue;
+            Settings.Set($"env.{e.Key}",v);
+        }
+        if (Path.IsNotBlank())
+            Settings.Set(StandardFormatAdaptor.Settings.KustoDataPath.Name, System.IO.Path.GetDirectoryName(Path)!);
+    }
     public void CreateNew()
     {
         _workspace = new Workspace();
-        Settings.Reset();
+        ResetSettings();
         Path = string.Empty;
     }
 
