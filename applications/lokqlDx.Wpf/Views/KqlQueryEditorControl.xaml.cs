@@ -47,8 +47,8 @@ public partial class KqlQueryEditorControl : UserControl
 
     private void UserControl_Loaded(object sender, RoutedEventArgs e)
     {
-        using var s = SafeGetResourceStream("SyntaxHighlighting.xml");
-        using var reader = new XmlTextReader(s);
+        using var stream = SafeGetResourceStream("SyntaxHighlighting.xml");
+        using var reader = new XmlTextReader(stream);
         Query.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
         using var functions = SafeGetResourceStream("IntellisenseFunctions.json");
         _kqlFunctionEntries = JsonSerializer.Deserialize<IntellisenseEntry[]>(functions!)!;
@@ -75,7 +75,8 @@ public partial class KqlQueryEditorControl : UserControl
 
     private void TextArea_TextEntered(object sender, TextCompositionEventArgs e)
     {
-        if (_completionWindow != null && !_completionWindow.CompletionList.ListBox.HasItems)
+        if (_completionWindow != null &&
+            !_completionWindow.CompletionList.ListBox.HasItems)
         {
             _completionWindow.Close();
             return;

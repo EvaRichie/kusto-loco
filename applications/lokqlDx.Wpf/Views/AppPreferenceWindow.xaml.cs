@@ -1,16 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using lokqlDx.Wpf.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace lokqlDx.Wpf.Views;
 
@@ -19,8 +9,12 @@ namespace lokqlDx.Wpf.Views;
 /// </summary>
 public partial class AppPreferenceWindow : Window
 {
+    private AppPreferenceWindowViewModel? _viewModel;
+
     public AppPreferenceWindow()
     {
         InitializeComponent();
+        _viewModel = App.ServiceProvider.GetService<AppPreferenceWindowViewModel>();
+        DataContext = _viewModel;
     }
 }

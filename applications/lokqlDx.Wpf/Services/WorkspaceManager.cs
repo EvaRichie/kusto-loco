@@ -1,13 +1,9 @@
 ﻿using KustoLoco.Core.Settings;
 using Lokql.Engine;
+using lokqlDx.Wpf.Models;
 using NotNullStrings;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace lokqlDx.Wpf.Services;
 
@@ -47,9 +43,9 @@ data
 ";
     }
 
-    public void Save(string filepath, Workspace workspace)
+    public void Save(string filePath, Workspace workspace)
     {
-        FilePath = filepath;
+        FilePath = filePath;
         try
         {
             var json = JsonSerializer.Serialize(workspace);
@@ -81,6 +77,7 @@ data
         FilePath = path;
         SetWorkingPaths();
         if (path.IsNotBlank())
+        {
             try
             {
                 var json = File.ReadAllText(FilePath);
@@ -90,6 +87,7 @@ data
             {
                 Console.WriteLine($"Error loading workspace: {e.Message}");
             }
+        }
 
         EnsureWorkspacePopulated();
     }
@@ -121,14 +119,4 @@ data
         Settings.Set(LokqlSettings.ScriptPath.Name, containingFolder);
         Settings.Set(LokqlSettings.QueryPath.Name, containingFolder);
     }
-}
-
-/// <summary>
-///     A Workspace is the query text and settings for a user's session.
-/// </summary>
-public record struct Workspace()
-{
-    public string Text { get; set; } = string.Empty;
-
-    public string StartupScript { get; set; } = string.Empty;
 }

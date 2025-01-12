@@ -40,6 +40,7 @@ public partial class App : Application
 
         // For dialog service flow.
         services.AddTransient<WorkspaceOptionWindowViewModel>();
+        services.AddTransient<AppPreferenceWindowViewModel>();
 
         ServiceProvider = services.BuildServiceProvider();
     }

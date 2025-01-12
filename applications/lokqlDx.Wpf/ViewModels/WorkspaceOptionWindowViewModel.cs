@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using lokqlDx.Wpf.Models;
+using lokqlDx.Wpf.Models.Messages;
 using lokqlDx.Wpf.Services;
 
 namespace lokqlDx.Wpf.ViewModels;
@@ -17,20 +15,32 @@ public partial class WorkspaceOptionWindowViewModel : ObservableRecipient
     [ObservableProperty]
     private string _workspaceScript = string.Empty;
 
+    private Workspace _workspace = new Workspace();
+
     private readonly IDialogService _dialogService;
 
-    public WorkspaceOptionWindowViewModel(WorkspaceManager workspaceManager, IDialogService dialogService)
+    public WorkspaceOptionWindowViewModel(IDialogService dialogService)
     {
         WindowTitle = "Workspace Options";
-        WorkspaceScript = workspaceManager.Workspace.StartupScript;
         _dialogService = dialogService;
+
+        // Request workspace from MainViewModel
+        var workspaceMsg = WeakReferenceMessenger.Default.Send(new CurrentWorkspaceMessage());
+        if (workspaceMsg.HasReceivedResponse)
+        {
+            _workspace = workspaceMsg.Response;
+            WorkspaceScript = _workspace.StartupScript;
+        }
     }
 
     [RelayCommand]
     private void FinishDialog()
     {
+        // Send workspace with text value updated
+        var updatedWorkspace = _workspace with { Text = WorkspaceScript };
+        WeakReferenceMessenger.Default.Send(new WorkspaceValueChanged(updatedWorkspace));
+
         _dialogService.SetDialogResult(true);
-        _dialogService.SetDialogResult(WorkspaceScript);
         _dialogService.CloseCurrentDialog();
     }
 

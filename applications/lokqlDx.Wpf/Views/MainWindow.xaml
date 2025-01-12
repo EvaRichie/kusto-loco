@@ -25,7 +25,6 @@
         <MenuItem Header="_New Workspace" />
         <MenuItem Header="_Open Workspace" />
         <MenuItem Header="_Recent Workspaces" Name="RecentlyUsed" />
-
         <MenuItem Header="_Save" />
         <MenuItem Header="Save _As" />
       </MenuItem>
@@ -57,11 +56,11 @@
         <MenuItem Header="Toggle word-wrap"
                   InputGestureText="Alt+Z"
                   IsCheckable="True"
-                  IsChecked="{Binding IsUseWordWrap}" />
+                  IsChecked="{Binding DisplayUseWordWrap, Mode=TwoWay}" />
         <MenuItem Header="Toggle line-numbers"
                   InputGestureText="Alt+N"
                   IsCheckable="True"
-                  IsChecked="{Binding IsShowLineNumber}" />
+                  IsChecked="{Binding DisplayShowLineNumber, Mode=TwoWay}" />
       </MenuItem>
       <MenuItem Header="Misc">
         <MenuItem Header="Register file association" />
@@ -100,9 +99,9 @@
           <TabItem Header="Editor mode">
             <local:KqlQueryEditorControl IsLoading="{Binding IsEditorLoading, Mode=OneWay}"
                                          EditorFontSize="{Binding DisplayFontSize, Mode=OneWay}"
-                                         EditorUseWordWrap="{Binding IsUseWordWrap, Mode=OneWay}"
+                                         EditorUseWordWrap="{Binding DisplayUseWordWrap, Mode=OneWay}"
                                          EditorFontFamily="{Binding DisplayFontFamilyName, Mode=OneWay, Converter={StaticResource FontFamilyNameCvt}}"
-                                         EditorShowLineNumbers="{Binding IsShowLineNumber, Mode=OneWay}"
+                                         EditorShowLineNumbers="{Binding DisplayShowLineNumber, Mode=OneWay}"
                                          RunKqlCommand="{Binding InvokeRunKqlQueryCommand, Mode=OneWay}" />
           </TabItem>
           <TabItem Header="Copilot">
@@ -138,7 +137,7 @@
                          Foreground="Red"
                          Text="{Binding OverFlowMessage, Mode=OneWay}"/>
             </StackPanel>
-            <DataGrid Name="dataGrid"
+            <DataGrid x:Name="dataGrid"
                       Background="Black"
                       RowBackground="Black"
                       Foreground="GreenYellow"

@@ -2,11 +2,13 @@
 
 public record Preferences
 {
+    public static string DefaultFontFamily => "Consolas";
+
     public string LastWorkspacePath { get; set; } = string.Empty;
 
     public double FontSize { get; set; } = 20;
 
-    public string FontFamily { get; set; } = "Consolas";
+    public string FontFamily { get; set; } = DefaultFontFamily;
 
     public double WindowWidth { get; set; }
 
@@ -16,9 +18,11 @@ public record Preferences
 
     public double WindowLeft { get; set; }
 
+    public bool AutoSave { get; set; } = false;
+
     public string StartupScript { get; set; } = string.Empty;
 
-    public string[] RecentProjects { get; set; } = [];
+    public IEnumerable<string> RecentProjects { get; set; } = [];
 
     public bool WordWrap { get; set; } = false;
 

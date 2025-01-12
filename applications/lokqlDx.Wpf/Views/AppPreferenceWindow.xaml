@@ -4,13 +4,54 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:lokqlDx.Wpf.ViewModels"
+        xmlns:cvts="clr-namespace:lokqlDx.Wpf.Views.Converters"
         xmlns:local="clr-namespace:lokqlDx.Wpf.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type={x:Type vm:AppPreferenceWindowViewModel}}"
         Title="{Binding WindowTitle}"
+        WindowStyle="None"
+        ResizeMode="NoResize"
         Height="450"
         Width="800">
-    <Grid>
-        
-    </Grid>
+
+  <Window.Resources>
+    <cvts:FontFamilyNameConverter x:Key="FontCvt"/>
+  </Window.Resources>
+  
+  <DockPanel>
+    <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" HorizontalAlignment="Right">
+      <Button Margin="3" Command="{Binding CloseDialogCommand}">Cancel</Button>
+      <Button Margin="3" Command="{Binding FinishDialogCommand}">Ok</Button>
+    </StackPanel>
+    <DockPanel>
+      <StackPanel Margin="5" DockPanel.Dock="Top">
+        <StackPanel Orientation="Horizontal">
+          <Label>Font</Label>
+          <ComboBox MinWidth="200"
+                    ItemsSource="{Binding BuildInFontFamilyNames, Mode=OneWay}"
+                    SelectedItem="{Binding PreferenceFontFamilyName, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock FontFamily="{Binding ., Converter={StaticResource FontCvt}}" Text="{Binding .}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <CheckBox IsChecked="{Binding UseAutoSave, Mode=TwoWay}">Automatically save workspace before running query</CheckBox>
+        </StackPanel>
+      </StackPanel>
+      <DockPanel>
+        <Label Content="Application pre-script (run every time a workspace is loaded)" DockPanel.Dock="Top" />
+        <Border Margin="5">
+          <TextBox Name="StartupScript"
+                   AcceptsReturn="True"
+                   Background="Black"
+                   Foreground="White"
+                   VerticalScrollBarVisibility="Auto"
+                   Text="{Binding StartupScript, Mode=TwoWay}"/>
+        </Border>
+      </DockPanel>
+    </DockPanel>
+  </DockPanel>
 </Window>

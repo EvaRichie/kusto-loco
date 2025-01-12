@@ -4,37 +4,64 @@ using CommunityToolkit.Mvvm.Messaging;
 using lokqlDx.Wpf.Models;
 using lokqlDx.Wpf.Models.Messages;
 using lokqlDx.Wpf.Services;
-using Microsoft.Extensions.DependencyInjection;
 using NotNullStrings;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using System.IO;
 
 namespace lokqlDx.Wpf.ViewModels;
 
-public partial class MainWindowViewModel : ObservableRecipient, IRecipient<RenderKqlQueryResultAsItemSource>
+public partial class MainWindowViewModel : IRecipient<RenderKqlQueryResultAsItemSource>,
+                                           IRecipient<WorkspaceValueChanged>,
+                                           IRecipient<AppPreferenceValueChanged>
+{
+    void IRecipient<RenderKqlQueryResultAsItemSource>.Receive(RenderKqlQueryResultAsItemSource message)
+    {
+        if (!message.IsValid)
+            return;
+
+        if (message.DefaultDataView is null)
+            return;
+
+        IsOverflowDataList = message.OverFlowMessage.IsNotBlank();
+        OverFlowMessage = message.OverFlowMessage;
+        TableView = message.DefaultDataView;
+        WeakReferenceMessenger.Default.Send(new SwitchViewModelMessage(RenderType.DataGrid));
+    }
+
+    void IRecipient<WorkspaceValueChanged>.Receive(WorkspaceValueChanged message)
+    {
+        var workspaceMerge = message.Value with { StartupScript = _currentPreferences.StartupScript };
+        _currentWorkspace = workspaceMerge;
+    }
+
+    void IRecipient<AppPreferenceValueChanged>.Receive(AppPreferenceValueChanged message)
+    {
+        _currentPreferences = _currentPreferences with { AutoSave = message.Value.AutoSave, FontFamily = message.Value.FontFamily, StartupScript = message.Value.StartupScript };
+        _preferenceService.CurrentPreference.AutoSave = _currentPreferences.AutoSave;
+        _preferenceService.CurrentPreference.FontFamily = _currentPreferences.FontFamily;
+        _preferenceService.CurrentPreference.StartupScript = _currentPreferences.StartupScript;
+
+        _currentWorkspace = _currentWorkspace with { StartupScript = _currentWorkspace.StartupScript };
+    }
+}
+
+public partial class MainWindowViewModel : ObservableRecipient
 {
     [ObservableProperty]
     private string _windowTitle = string.Empty;
 
     [ObservableProperty]
-    private bool _isUseWordWrap = false;
+    private bool _displayUseWordWrap = false;
 
     [ObservableProperty]
-    private bool _isShowLineNumber = false;
+    private bool _displayShowLineNumber = false;
+
+    [ObservableProperty]
+    private string _displayFontFamilyName = Preferences.DefaultFontFamily;
 
     [ObservableProperty]
     private double _displayFontSize = 12;
-
-    [ObservableProperty]
-    private string _displayFontFamilyName = "Consolas";
-
-    [ObservableProperty]
-    private Workspace _workspacePreference = new();
 
     [ObservableProperty]
     private string _kqlQueryText = string.Empty;
@@ -53,52 +80,57 @@ public partial class MainWindowViewModel : ObservableRecipient, IRecipient<Rende
 
     private readonly IAppPreferenceService _preferenceService;
     private readonly IDialogService _dialogService;
+    private readonly IKustoResultProcessService _kustoResultProcessService;
 
-    public MainWindowViewModel(IAppPreferenceService appPreferenceService, IDialogService dialogService)
+    private readonly WorkspaceManager _workspaceMgr;
+
+    private Preferences _currentPreferences = new();
+    private Workspace _currentWorkspace = new();
+
+    public MainWindowViewModel(IAppPreferenceService appPreferenceService, IDialogService dialogService, IKustoResultProcessService kustoResultProcessService, WorkspaceManager workspaceMgr)
     {
+        Messenger.Register<CurrentWorkspaceMessage>(this, WorkspaceMsgHandler);
+        Messenger.Register<CurrentAppPreferenceMessage>(this, AppPreferenceMsgHandler);
         IsActive = true;
-        Messenger.Register<CurrentAppPreferenceMessage>(this, handler);
 
         WindowTitle = "lokqlDx";
+
         _preferenceService = appPreferenceService;
         _dialogService = dialogService;
+        _kustoResultProcessService = kustoResultProcessService;
+
+        _workspaceMgr = workspaceMgr;
+        _currentWorkspace = _workspaceMgr.Workspace;
     }
 
-    private async void handler(object recipient, CurrentAppPreferenceMessage message)
+    private void WorkspaceMsgHandler(object recipient, CurrentWorkspaceMessage message)
     {
-        _preferenceService.EnsureDefaultFolderExists();
-        await _preferenceService.LoadPreferenceAsync();
+        message.Reply(_workspaceMgr.Workspace);
+    }
 
+    private void AppPreferenceMsgHandler(object recipient, CurrentAppPreferenceMessage message)
+    {
         message.Reply(_preferenceService.CurrentPreference);
     }
 
-    void IRecipient<RenderKqlQueryResultAsItemSource>.Receive(RenderKqlQueryResultAsItemSource message)
+    partial void OnDisplayFontFamilyNameChanged(string value)
     {
-        if (!message.IsValid)
-            return;
-
-        if (message.DefaultDataView is null)
-            return;
-
-        IsOverflowDataList = message.OverFlowMessage.IsNotBlank();
-        OverFlowMessage = message.OverFlowMessage;
-        TableView = message.DefaultDataView;
-        WeakReferenceMessenger.Default.Send(new SwitchViewModelMessage(RenderType.DataGrid));
+        _currentPreferences.FontFamily = value;
     }
 
     partial void OnDisplayFontSizeChanged(double value)
     {
-        _preferenceService.CurrentPreference.FontSize = value;
+        _currentPreferences.FontSize = value;
     }
 
-    partial void OnIsUseWordWrapChanged(bool value)
+    partial void OnDisplayShowLineNumberChanged(bool value)
     {
-        _preferenceService.CurrentPreference.WordWrap = value;
+        _currentPreferences.ShowLineNumbers = value;
     }
 
-    partial void OnIsShowLineNumberChanged(bool value)
+    partial void OnDisplayUseWordWrapChanged(bool value)
     {
-        _preferenceService.CurrentPreference.ShowLineNumbers = value;
+        _currentPreferences.WordWrap = value;
     }
 
     [RelayCommand]
@@ -106,13 +138,30 @@ public partial class MainWindowViewModel : ObservableRecipient, IRecipient<Rende
     {
         _preferenceService.EnsureDefaultFolderExists();
         await _preferenceService.LoadPreferenceAsync();
+        _currentPreferences = _preferenceService.CurrentPreference;
 
-        //WeakReferenceMessenger.Default.Send(new CurrentAppPreferenceMessage());
-
-        IsUseWordWrap = _preferenceService.CurrentPreference.WordWrap;
-        IsShowLineNumber = _preferenceService.CurrentPreference.ShowLineNumbers;
-        DisplayFontSize = _preferenceService.CurrentPreference.FontSize;
+        DisplayFontFamilyName = _currentPreferences.FontFamily;
+        DisplayFontSize = _currentPreferences.FontSize;
+        DisplayUseWordWrap = _currentPreferences.WordWrap;
+        DisplayShowLineNumber = _currentPreferences.ShowLineNumbers;
     }
+
+    //[RelayCommand]
+    //private async Task NewWorkspaceAsync()
+    //{
+    //}
+
+    //[RelayCommand]
+    //private async Task OpenWorkspaceAsync()
+    //{
+    //    var defaultWorkspaceFolder = _workspaceMgr.ContainingFolder();
+    //    var openFileDialog = _dialogService.ShowDialog();
+    //}
+
+    //[RelayCommand]
+    //private async Task SaveWorkspaceAsync()
+    //{
+    //}
 
     [RelayCommand]
     private void ChangeFontSize(string mode)
@@ -130,20 +179,12 @@ public partial class MainWindowViewModel : ObservableRecipient, IRecipient<Rende
     private void OpenWorkspaceScriptDialog(Type dialogType)
     {
         _dialogService.ShowDialog(dialogType.Name);
-        if (_dialogService.LastDialogResult is string workspaceScript)
-        {
-            WorkspacePreference = new Workspace { StartupScript = workspaceScript, Text = KqlQueryText };
-        }
     }
 
     [RelayCommand]
     private void OpenAppPreferenceDialog(Type dialogType)
     {
         _dialogService.ShowDialog(dialogType.Name);
-        if (_dialogService.LastDialogResult is not null)
-        {
-
-        }
     }
 
     [RelayCommand]
@@ -167,14 +208,40 @@ public partial class MainWindowViewModel : ObservableRecipient, IRecipient<Rende
     }
 
     [RelayCommand]
-    private void OpenWithDefaultBrowser()
+    private async Task OpenWithDefaultBrowser()
     {
+        // Use Shell Execute to launch default browser.
+        var processInfo = new ProcessStartInfo { UseShellExecute = true };
+        if (_kustoResultProcessService.LastRender.Html.IsNotBlank())
+        {
+            try
+            {
+                var tempHtmlFile = Path.ChangeExtension(Path.GetTempFileName(), "html");
+                var fileStream = File.Open(tempHtmlFile, new FileStreamOptions { Access = FileAccess.ReadWrite, Options = FileOptions.Asynchronous, Share = FileShare.None });
+                var writer = new StreamWriter(fileStream);
+                await writer.WriteAsync(_kustoResultProcessService.LastRender.Html);
+                await writer.FlushAsync();
+                await writer.DisposeAsync();
 
+                processInfo.FileName = tempHtmlFile;
+            }
+            catch
+            {
+            }
+        }
+
+        if (Uri.TryCreate(_kustoResultProcessService.LastRender.Uri, UriKind.RelativeOrAbsolute, out var _))
+        {
+            processInfo.FileName = _kustoResultProcessService.LastRender.Uri;
+        }
+
+        Process.Start(processInfo);
     }
 
     [RelayCommand]
     private void CopyImageToClipboard()
     {
-
+        WeakReferenceMessenger.Default.Send(new RequestWebViewToImageMessage(string.Empty));
     }
+
 }

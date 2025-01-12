@@ -7,13 +7,9 @@ public interface IDialogService
 {
     object? DialogInstance { get; }
 
-    object? LastDialogResult { get; }
-
     bool ShowDialog(string dialogType);
 
     void SetDialogResult(bool dialogResult);
-
-    void SetDialogResult(object dialogResult);
 
     void CloseCurrentDialog();
 }
@@ -21,8 +17,6 @@ public interface IDialogService
 public class Win32DialogService : IDialogService
 {
     public object? DialogInstance { get; private set; }
-
-    public object? LastDialogResult { get; private set; }
 
     public bool ShowDialog(string dialogType)
     {
@@ -36,6 +30,8 @@ public class Win32DialogService : IDialogService
         {
             DialogInstance = instanceWindow;
             instanceWindow.Owner = App.Current.MainWindow;
+            instanceWindow.Left = App.Current.MainWindow.Left + 200;
+            instanceWindow.Top = App.Current.MainWindow.Top + 200;
             return instanceWindow.ShowDialog().GetValueOrDefault();
         }
 
@@ -48,7 +44,6 @@ public class Win32DialogService : IDialogService
             return;
 
         windowInstance.Close();
-        LastDialogResult = null;
     }
 
     public void SetDialogResult(bool result)
@@ -57,10 +52,5 @@ public class Win32DialogService : IDialogService
             return;
 
         windowInstance.DialogResult = result;
-    }
-
-    public void SetDialogResult(object dialogResult)
-    {
-        LastDialogResult = dialogResult;
     }
 }

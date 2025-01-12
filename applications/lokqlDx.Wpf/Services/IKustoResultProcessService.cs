@@ -3,6 +3,7 @@ using KustoLoco.Core;
 using KustoLoco.Core.Settings;
 using Lokql.Engine.Commands;
 using lokqlDx.Wpf.Helpers;
+using lokqlDx.Wpf.Models;
 using lokqlDx.Wpf.Models.Messages;
 using NotNullStrings;
 using System.Configuration;
@@ -56,6 +57,3 @@ public class Win32KustoResultProcessService : IKustoResultProcessService
         return Task.FromResult(Array.Empty<byte>());
     }
 }
-
-
-public readonly record struct UriOrHtml(string Uri, string Html);

@@ -8,6 +8,8 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type={x:Type vm:WorkspaceOptionWindowViewModel}}"
         Title="{Binding WindowTitle}"
+        WindowStyle="None"
+        ResizeMode="NoResize"
         Height="450"
         Width="800">
 
@@ -23,7 +25,7 @@
                  Background="Black"
                  Foreground="White"
                  VerticalScrollBarVisibility="Auto"
-                 Text="{Binding WorkspaceScript, Mode=OneWay}"/>
+                 Text="{Binding WorkspaceScript, Mode=TwoWay}"/>
       </Border>
     </DockPanel>
   </DockPanel>
